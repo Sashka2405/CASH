@@ -1,4 +1,5 @@
 #include "play_render.h"
+#include "obstacle.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
@@ -18,6 +19,8 @@
 #include "../game/specialConditions/wind.h"
 #include "../math/math.h"
 #include "log/log.h"
+
+
 
 //generate count trees, coordination_x and create render object for trees
 void renderTree(App* app, RenderObject* objectsArr[], SDL_bool* flag_regenTree,
@@ -76,21 +79,52 @@ void renderShelter76(App* app, RenderObject* objectsArr[],
     printf("DEBUG: count shelter = %d \n", *count_shelter);
     for (int i = 0; i < *count_shelter; i++) {
       x[i] = rand() % app->screenWidth;
+      while (x[i] < 150 * app->scalingFactorX ||
+          x[i] > app->screenWidth - 150 * app->scalingFactorX) {
+        x[i] = rand() % app->screenWidth;
+      }
+      //obstacleRock[0] = 200;
+      //printf("DEBUG: obstacle %d\n", obstacleRock[i]);
+
       //if (x[i])
     }
     *flag_regenShelter = false;
   }
   for (int i = 0; i < *count_shelter; i++) {
-    double angle = getAngle(x[i], heightmap, 101);
-    angle = 1;
-    objectsArr[i] = createRenderObject(
-        app->renderer, TEXTURE | EXTENDED, 1, b_NONE, "media/imgs/rock.png",
-        &(SDL_Point){
-            x[i], -70 + app->screenHeight / app->scalingFactorY -
-                      heightmap[(int32_t)(x[i]*app->scalingFactorX)] /
-                          app->scalingFactorY},
-        angle, SDL_FLIP_NONE, &(SDL_Point){0,0});
+    objectsArr[i] = fall(app, NULL, heightmap, x[i]);
   }
+}
+
+RenderObject* fall(App* app, RenderObject* object, int32_t* heightmap,
+                   int32_t x) {
+  //int32_t max = 0;
+  //int32_t dx = 101;
+  //for (int32_t i = x; i < (x + 101); i++) {
+  //  if (max < heightmap[(int32_t)(i * app->scalingFactorX)]) {
+  //    max = heightmap[(int32_t)(i * app->scalingFactorX)];
+  //    dx = i;
+  //  }
+  //}
+  SDL_Point* pos = malloc(sizeof(SDL_Point));
+  if (pos != NULL)
+    *pos = (SDL_Point){x, -69 + app->screenHeight / app->scalingFactorY -
+                              heightmap[(int32_t)(x * app->scalingFactorX)] /
+                                  app->scalingFactorY};
+    //*pos = (SDL_Point){200 * app->scalingFactorX, 200};
+  double angle =
+      getAngle(x * app->scalingFactorX, heightmap, 80 * app->scalingFactorX);
+  object = createRenderObject(
+      app->renderer, TEXTURE, 0, b_NONE, "media/imgs/rock.png",
+      pos);
+  object->data.texture.angle = 360 - angle;
+  //object->data.texture.angle = 0.0f;
+  object->data.texture.angleAlt = 0.0f;
+  object->data.texture.flipFlag = SDL_FLIP_NONE;
+  SDL_Point* center = malloc(sizeof(SDL_Point));
+  if (center != NULL) *center = (SDL_Point){0, 0};
+  object->data.texture.centerRot = center;
+  object->data.texture.centerRot_Alt = NULL;
+  return object;
 }
 
 // saving current render state to a texture, so it will be faster to output
@@ -496,7 +530,6 @@ void playMain(App* app, uint32_t SEED) {
       360 - anglePlayer1, 0.0, SDL_FLIP_NONE,
       &(SDL_Point){5 * app->scalingFactorX, 27 * app->scalingFactorY},
       &(SDL_Point){24 * app->scalingFactorX, 8 * app->scalingFactorY});
-
   // 2nd player textures
   RenderObject* Player2Tank = createRenderObject(
       app->renderer, TEXTURE | EXTENDED, 1, b_NONE,
@@ -684,7 +717,6 @@ void playMain(App* app, uint32_t SEED) {
   };
 
   struct objTree trees = {0};
-
   RenderObject* tree1 = NULL;
   RenderObject* tree2 = NULL;
   RenderObject* tree3 = NULL;
@@ -725,8 +757,20 @@ void playMain(App* app, uint32_t SEED) {
   RenderObject* shelterArr[] = {
       shelter1, shelter2, shelter3, shelter4,
   };
-  renderShelter76(app, shelterArr, &playerMove_Params.regenShelter, &shelter.count,
-              shelter.x, heightMap);
+  /*renderShelter76(app, shelterArr, &playerMove_Params.regenShelter, &shelter.count,
+              shelter.x, heightMap);*/
+  double angle = getAngle(200, heightMap, 90);
+  shelter1 = createRenderObject(
+      app->renderer, TEXTURE | EXTENDED, 1, b_NONE,
+      "media/imgs/rock.png",
+      &(SDL_Point){200,
+                   -69 + app->screenHeight / app->scalingFactorY -
+                          heightMap[(int32_t)(200 * app->scalingFactorX)] /
+                              app->scalingFactorY},
+      360 - angle, SDL_FLIP_NONE,
+      &(SDL_Point){55 * app->scalingFactorX, 69 * app->scalingFactorY});
+  obstacleRock[0] = shelter1->data.texture.scaleRect.x;
+  //shelter1 =  fall(app, NULL, heightMap,200);
   //--------------------------------------------------------
 
   recalcPlayerPos(app, &firstPlayer, heightMap, 0, 5);
@@ -821,6 +865,7 @@ void playMain(App* app, uint32_t SEED) {
       bulletPath,
       speedLabelObject,
       directionIconObject,
+      shelter1,
   };
   while (app->currState == PLAY) {
     threadEventPoll(app);
