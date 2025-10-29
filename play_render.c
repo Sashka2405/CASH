@@ -21,112 +21,6 @@
 #include "log/log.h"
 
 
-
-//generate count trees, coordination_x and create render object for trees
-void renderTree(App* app, RenderObject* objectsArr[], SDL_bool* flag_regenTree,
-                int32_t* count_tree, int32_t* x, int32_t* heightmap) {
-    if (*flag_regenTree) {
-    *count_tree = rand() % 6;
-    printf("DEBUG: count trees = %d \n", *count_tree);
-    for (int i = 0; i < *count_tree; i++) {
-      x[i] = rand() % app->screenWidth;
-    }
-    *flag_regenTree = false;
-    }
-    if (*count_tree == 0) return;
-    for (int i = 0; i < *count_tree; i++) {
-      objectsArr[i] = createRenderObject(
-          app->renderer, TEXTURE, 1, b_NONE, "media/imgs/tree1.png",
-          &(SDL_Point){
-              x[i], -120 + app->screenHeight / app->scalingFactorY -
-                        heightmap[(int32_t)((x[i] + 54) * app->scalingFactorX)] /
-                            app->scalingFactorY});
-    }
-}
-//generate count clouds, coordination_x and create render object for clouds 
-void renderCloud(App* app, RenderObject* objectsArr[], SDL_bool* flag_regencloud,
-                int32_t* count_cloud, int32_t* x, int32_t* heightmap) {
-    if (*flag_regencloud) {
-    *count_cloud = rand() % 6;
-    printf("DEBUG: count cloud = %d \n", *count_cloud);
-    for (int i = 0; i < *count_cloud; i++) {
-      x[i] = rand() % app->screenWidth;
-    }
-    *flag_regencloud = false;
-    }
-    if (*count_cloud == 0) {
-      *flag_regencloud = true;
-      return;
-    }
-    for (int i = 0; i < *count_cloud; i++) {
-      objectsArr[i] = createRenderObject(
-          app->renderer, TEXTURE, 1, b_NONE, "media/imgs/cloud.png",
-          &(SDL_Point){x[i],
-                       -250 + app->screenHeight / app->scalingFactorY -
-                           heightmap[(int32_t)(x[i] * app->scalingFactorX)] /
-                               app->scalingFactorY});
-      x[i] = x[i] + 1;
-      if (x[i] > app->screenWidth) *flag_regencloud = true;
-    }
-}
-
-//Fallout 
-void renderShelter76(App* app, RenderObject* objectsArr[],
-                     SDL_bool* flag_regenShelter, int32_t* count_shelter,
-                     int32_t* x, int32_t* heightmap) {
-  if (*flag_regenShelter) {
-    while (*count_shelter <= 0) *count_shelter = rand() % 5;
-    printf("DEBUG: count shelter = %d \n", *count_shelter);
-    for (int i = 0; i < *count_shelter; i++) {
-      x[i] = rand() % app->screenWidth;
-      while (x[i] < 150 * app->scalingFactorX ||
-          x[i] > app->screenWidth - 150 * app->scalingFactorX) {
-        x[i] = rand() % app->screenWidth;
-      }
-      //obstacleRock[0] = 200;
-      //printf("DEBUG: obstacle %d\n", obstacleRock[i]);
-
-      //if (x[i])
-    }
-    *flag_regenShelter = false;
-  }
-  for (int i = 0; i < *count_shelter; i++) {
-    objectsArr[i] = fall(app, NULL, heightmap, x[i]);
-  }
-}
-
-RenderObject* fall(App* app, RenderObject* object, int32_t* heightmap,
-                   int32_t x) {
-  //int32_t max = 0;
-  //int32_t dx = 101;
-  //for (int32_t i = x; i < (x + 101); i++) {
-  //  if (max < heightmap[(int32_t)(i * app->scalingFactorX)]) {
-  //    max = heightmap[(int32_t)(i * app->scalingFactorX)];
-  //    dx = i;
-  //  }
-  //}
-  SDL_Point* pos = malloc(sizeof(SDL_Point));
-  if (pos != NULL)
-    *pos = (SDL_Point){x, -69 + app->screenHeight / app->scalingFactorY -
-                              heightmap[(int32_t)(x * app->scalingFactorX)] /
-                                  app->scalingFactorY};
-    //*pos = (SDL_Point){200 * app->scalingFactorX, 200};
-  double angle =
-      getAngle(x * app->scalingFactorX, heightmap, 80 * app->scalingFactorX);
-  object = createRenderObject(
-      app->renderer, TEXTURE, 0, b_NONE, "media/imgs/rock.png",
-      pos);
-  object->data.texture.angle = 360 - angle;
-  //object->data.texture.angle = 0.0f;
-  object->data.texture.angleAlt = 0.0f;
-  object->data.texture.flipFlag = SDL_FLIP_NONE;
-  SDL_Point* center = malloc(sizeof(SDL_Point));
-  if (center != NULL) *center = (SDL_Point){0, 0};
-  object->data.texture.centerRot = center;
-  object->data.texture.centerRot_Alt = NULL;
-  return object;
-}
-
 // saving current render state to a texture, so it will be faster to output
 // after
 SDL_Texture* saveRenderMapToTexture(SDL_Renderer* renderer, int32_t width,
@@ -757,9 +651,9 @@ void playMain(App* app, uint32_t SEED) {
   RenderObject* shelterArr[] = {
       shelter1, shelter2, shelter3, shelter4,
   };
-  /*renderShelter76(app, shelterArr, &playerMove_Params.regenShelter, &shelter.count,
-              shelter.x, heightMap);*/
-  double angle = getAngle(200, heightMap, 90);
+  renderShelter76(app, shelterArr, &playerMove_Params.regenShelter, &shelter.count,
+              shelter.x, heightMap);
+  /*double angle = getAngle(200, heightMap, 90);
   shelter1 = createRenderObject(
       app->renderer, TEXTURE | EXTENDED, 1, b_NONE,
       "media/imgs/rock.png",
@@ -769,7 +663,7 @@ void playMain(App* app, uint32_t SEED) {
                               app->scalingFactorY},
       360 - angle, SDL_FLIP_NONE,
       &(SDL_Point){55 * app->scalingFactorX, 69 * app->scalingFactorY});
-  obstacleRock[0] = shelter1->data.texture.scaleRect.x;
+  obstacleRock[0] = shelter1->data.texture.scaleRect.x;*/
   //shelter1 =  fall(app, NULL, heightMap,200);
   //--------------------------------------------------------
 
@@ -1016,9 +910,9 @@ void playMain(App* app, uint32_t SEED) {
     }
 
     renderTextures(app, cloudArr, clouds.count, SDL_TRUE);
+    renderTextures(app, shelterArr, shelter.count, SDL_TRUE);
     renderTextures(app, objectsArr, sizeof(objectsArr) / sizeof(*objectsArr),
                    SDL_TRUE);
-    renderTextures(app, shelterArr, shelter.count, SDL_TRUE);
     renderTextures(app, treeArr, trees.count, SDL_TRUE);
     SDL_RenderPresent(app->renderer);
     SDL_Delay(16);
